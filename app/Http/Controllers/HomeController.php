@@ -36,7 +36,7 @@ class HomeController extends Controller
         }
 
         // 投稿を時系列順に並べ替え
-        if ($posts) {
+        if (count($posts) == 0) {
             $posts = $this->sort($posts);
         }
         
