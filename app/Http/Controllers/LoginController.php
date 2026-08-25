@@ -38,9 +38,17 @@ class LoginController extends Controller
 
     /**
      * ログアウト処理
+     *
+     * ログイン情報をブラウザ(セッション)から完全に削除する。
      */
     public function destroy(Request $request): RedirectResponse
     {
+        Auth::logout();
+
+        // セッション自体を破棄し、CSRF トークンも再発行する
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 }

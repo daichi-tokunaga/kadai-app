@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Post;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -9,6 +10,28 @@ use Tests\TestCase;
 class UserTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * Bug1: ユーザーを押下すると正しいユーザーの情報が表示されること
+     *
+     * @test
+     */
+    public function ユーザー画面には指定したユーザーの情報が表示される(): void
+    {
+        $loginUser = User::factory()->create(['name' => 'ログイン中のユーザー']);
+        $target = User::factory()->create(['name' => '表示したいユーザー']);
+        $other = User::factory()->create(['name' => '関係ないユーザー']);
+
+        Post::factory()->for($target)->create(['content' => '表示したいユーザーの投稿']);
+        Post::factory()->for($other)->create(['content' => '関係ないユーザーの投稿']);
+
+        $this->actingAs($loginUser)
+            ->get("/user/{$target->id}")
+            ->assertOk()
+            ->assertSee('表示したいユーザー')
+            ->assertSee('表示したいユーザーの投稿')
+            ->assertDontSee('関係ないユーザーの投稿');
+    }
 
     /** @test */
     public function 存在しないユーザーは404になる(): void

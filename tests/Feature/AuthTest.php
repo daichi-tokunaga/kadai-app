@@ -53,6 +53,24 @@ class AuthTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * Bug3: ログアウトするとログイン情報がブラウザから削除されること
+     *
+     * @test
+     */
+    public function ログアウトするとセッションからログイン情報が消える(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/logout');
+
+        $response->assertRedirect('/login');
+        $this->assertGuest();
+
+        // ログアウト後にホームへアクセスするとログイン画面に戻される
+        $this->get('/')->assertRedirect('/login');
+    }
+
     /** @test */
     public function 未ログインではホーム画面にアクセスできない(): void
     {

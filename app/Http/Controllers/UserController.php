@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileRequest;
+use App\Http\Requests\SignupRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -20,8 +22,6 @@ class UserController extends Controller
      */
     public function show(Request $request, User $user): View
     {
-        $user = User::find(3);
-
         // フォロー数 / フォロワー数を件数クエリだけで取得する
         $user->loadCount(['followings', 'followers']);
 
@@ -67,15 +67,29 @@ class UserController extends Controller
      */
     public function create(): View
     {
-        return view('user.signup');
+        // JavaScript 側のバリデーションにも同じルールを渡す(二重管理を避ける)
+        return view('user.signup', [
+            'rules' => [
+                'asciiPattern' => SignupRequest::ASCII_PATTERN,
+                'emailPattern' => SignupRequest::EMAIL_PATTERN,
+                'passwordMinLength' => SignupRequest::PASSWORD_MIN_LENGTH,
+            ],
+        ]);
     }
 
     /**
      * 新規登録処理
+     *
+     * メールアドレスの重複チェックを含むバリデーションは SignupRequest が担当する。
+     * パスワードは User モデルのミューテタで必ずハッシュ化される。
      */
-    public function store(Request $request): RedirectResponse
+    public function store(SignupRequest $request): RedirectResponse
     {
-        // TODO 登録処理
+        $user = User::create($request->validated());
+
+        // 登録したアカウントでそのままログインさせる
+        Auth::login($user);
+        $request->session()->regenerate();
 
         return redirect()->route('home');
     }

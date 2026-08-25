@@ -26,14 +26,16 @@ class ScreenTest extends TestCase
     {
         $user = User::factory()->create();
         $post = Post::factory()->for($user)->create();
+        $other = User::factory()->create();
+
         $this->actingAs($user);
 
         $this->get('/')->assertOk();
         $this->get('/post')->assertOk();
         $this->get("/post/detail/{$post->id}")->assertOk();
         $this->get("/post/edit/{$post->id}")->assertOk();
-        // NOTE: ユーザー画面( /user/{id} )は課題(Bug1)の対象のため、
-        //       修正されるまで正しく表示できずここでは検証しない
+        $this->get("/user/{$user->id}")->assertOk();
+        $this->get("/user/{$other->id}")->assertOk();
         $this->get("/user/edit/{$user->id}")->assertOk();
         $this->get("/user/{$user->id}/follow")->assertOk();
         $this->get("/user/{$user->id}/follower")->assertOk();

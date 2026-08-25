@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PostRequest;
 use App\Models\Post;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PostController extends Controller
@@ -20,10 +20,12 @@ class PostController extends Controller
     /**
      * 投稿処理
      */
-    public function store(Request $request): RedirectResponse
+    public function store(PostRequest $request): RedirectResponse
     {
+        // バリデーションは PostRequest が担当する。
+        // 失敗した場合はここに到達せず、入力内容付きで投稿画面に戻される。
         $request->user()->posts()->create([
-            'content' => $request->postContent,
+            'content' => $request->validated()['postContent'],
         ]);
 
         return redirect()->route('home');
@@ -58,13 +60,13 @@ class PostController extends Controller
     /**
      * 投稿編集処理
      */
-    public function update(Request $request, Post $post): RedirectResponse
+    public function update(PostRequest $request, Post $post): RedirectResponse
     {
         // 画面を経由せず直接 PUT された場合もここで弾かれる
         $this->authorize('update', $post);
 
         $post->update([
-            'content' => $request->postContent,
+            'content' => $request->validated()['postContent'],
         ]);
 
         return redirect()->route('posts.show', $post);

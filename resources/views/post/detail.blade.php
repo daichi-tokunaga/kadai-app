@@ -17,6 +17,8 @@
         <div class="time-stamp">{{ $post->created_at }}</div>
     </a>
 
+    {{-- 編集・削除は投稿者本人にのみ表示する(判定は PostPolicy) --}}
+    @can('update', $post)
     <div class="menu">
         <div class="menu-item font-blue">
             <a href="{{ route('posts.edit', $post) }}">編集</a>
@@ -29,5 +31,6 @@
             </button>
         </form>
     </div>
+    @endcan
 </div>
 @endsection

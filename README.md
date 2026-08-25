@@ -1,3 +1,6 @@
+> **このブランチは模範解答(`solution`)です。**
+> 課題に取り組む場合は `master` ブランチを使ってください。
+
 <h1>初回のみやること</h1>
 
 このリポジトリ(徳永のアカウントにあるリポジトリ)を自身のアカウントにフォークして課題を進めること。
@@ -258,6 +261,8 @@ Laravel 標準の認証機構(`Auth` ファサード)を使用している。
 | クラス | 対象 |
 | --- | --- |
 | `LoginRequest` | ログイン |
+| `SignupRequest` | 新規登録 |
+| `PostRequest` | 投稿 / 投稿編集 |
 | `ProfileRequest` | プロフィール編集 |
 
 エラーメッセージの表示には `<x-error-messages />` コンポーネントが使える。
@@ -265,10 +270,9 @@ Laravel 標準の認証機構(`Auth` ファサード)を使用している。
 
 JavaScript 側でエラーを表示する場合は `public/js/app.js` の `renderErrors()` が使える。
 
-> **ヒント**
-> バリデーションルールを PHP と JavaScript の両方に直接書くと、片方を直し忘れて
-> 食い違いが起きる。定数として一箇所に定義し、`data-*` 属性でビューから
-> JavaScript に渡すようにすると二重管理を避けられる。
+バリデーションルールを PHP と JavaScript の両方に直接書くと、片方を直し忘れて
+食い違いが起きる。`SignupRequest` / `Post::MAX_CONTENT_LENGTH` に定数として定義し、
+`data-*` 属性でビューから JavaScript に渡すことで二重管理を避けている。
 
 - - -
 
@@ -277,7 +281,7 @@ JavaScript 側でエラーを表示する場合は `public/js/app.js` の `rende
 | テーブル | 補足 |
 | --- | --- |
 | `users` | |
-| `posts` | `is_deleted` による論理削除 |
+| `posts` | `is_deleted` による論理削除。グローバルスコープで全クエリから自動的に除外される |
 | `follows` | `users` の多対多の中間テーブル。`(user_id, follow_user_id)` に一意制約があり二重フォローを防ぐ |
 
 * カラム名は Laravel の規約に合わせて `user_id` / `follow_user_id`
@@ -323,10 +327,6 @@ php artisan test
 ```
 
 SQLite のインメモリデータベースで実行されるため、MySQL を起動していなくても動く。
-課題に取り組んだあと、既存のテストが壊れていないことを確認すること。
-
-なお、課題の対象になっている箇所のテストは意図的に用意していない。
-自分で書いてみると理解が深まる。
 
 - - -
 
@@ -334,3 +334,161 @@ SQLite のインメモリデータベースで実行されるため、MySQL を�
 
 * `package.json` / `vite.config.js` が存在するが、現状 Vite は使用しておらず
   `public/` 配下の CSS / JS を直接読み込んでいる
+
+- - -
+- - -
+
+<h1>模範解答の解説</h1>
+
+> このブランチ(`solution`)は課題の解答例です。
+> `master` との差分がそのまま「Bug1〜5 と問題2 をどう直したか」になります。
+>
+> ```
+> git diff master solution
+> ```
+
+- - -
+
+<h2>Bug1: 別のユーザーの画面が表示される</h2>
+
+`UserController::show()` に `$user = User::find(3);` があり、URL の ID を無視して
+常に ID=3 のユーザーを表示していた。この1行を削除するだけでよい。
+
+ルートモデルバインディングにより、引数の `User $user` には
+URL の `{user}` に対応するユーザーがすでに入っている。
+
+```php
+public function show(Request $request, User $user): View
+{
+    // $user はルートから自動的に解決済み
+```
+
+- - -
+
+<h2>Bug2: 削除した投稿が残る</h2>
+
+`posts.is_deleted` を `true` にはしていたが、取得時に絞り込んでいなかった。
+
+呼び出し側ごとに `where('is_deleted', false)` を書くと必ず書き漏らしが出るため、
+`Post` モデルにグローバルスコープとして一度だけ定義する。
+
+```php
+protected static function booted(): void
+{
+    static::addGlobalScope('notDeleted', function (Builder $query) {
+        $query->where('is_deleted', false);
+    });
+}
+```
+
+これでタイムライン・ユーザー画面に加えて、ルートモデルバインディングにも効くので
+削除済み投稿の詳細画面( /post/detail/{id} )は自動的に 404 になる。
+
+- - -
+
+<h2>Bug3: ログアウトしてもログイン情報が残る</h2>
+
+リダイレクトするだけでセッションを破棄していなかった。
+
+```php
+Auth::logout();
+
+// セッション自体を破棄し、CSRF トークンも再発行する
+$request->session()->invalidate();
+$request->session()->regenerateToken();
+```
+
+`Auth::logout()` だけではセッションに残った他のデータが引き継がれてしまうため、
+`invalidate()` まで行うのが定石。
+
+- - -
+
+<h2>Bug4: 投稿のバリデーションが無い</h2>
+
+`App\Http\Requests\PostRequest` を追加し、コントローラの引数の型を
+`Request` から `PostRequest` に差し替えた。
+
+```php
+'postContent' => ['required', 'string', 'max:'.Post::MAX_CONTENT_LENGTH],
+```
+
+`TrimStrings` ミドルウェアが前後の空白を除去するため、`required` が
+そのまま「1文字以上」の条件になる。
+
+画面側は投稿ボタンの下に `<x-error-messages />` を置いて表示する。
+JavaScript 側の検証は `app.js` の `setupPostValidation()` にあり、
+上限文字数は `Post::MAX_CONTENT_LENGTH` を `data-max-length` 属性で受け取っている。
+
+- - -
+
+<h2>Bug5: 他人の投稿にも編集・削除ボタンが出る</h2>
+
+`PostPolicy` はすでにあるので、ビューで `@can` を使って表示を切り替えるだけ。
+
+```blade
+@can('update', $post)
+<div class="menu">
+    ...
+</div>
+@endcan
+```
+
+- - -
+
+<h2>問題2: 新規登録</h2>
+
+| ファイル | 役割 |
+| --- | --- |
+| `App\Http\Requests\SignupRequest` | バリデーション(メールアドレスの重複チェックを含む) |
+| `UserController::create()` | 画面表示。JavaScript にルールを渡す |
+| `UserController::store()` | 登録 + そのままログイン |
+| `resources/views/user/signup.blade.php` | 画面 |
+| `public/js/app.js` の `setupSignupValidation()` | クライアント側の検証 |
+
+<h3>バリデーションを二重管理しない</h3>
+
+同じルールを PHP と JavaScript に別々に書くと、片方を直し忘れて食い違う。
+`SignupRequest` に定数として定義し、`data-*` 属性でビューから JavaScript に渡している。
+
+```php
+// SignupRequest
+public const ASCII_PATTERN = '^[\x21-\x7e]+$';
+public const EMAIL_PATTERN = '^[^\s@]+@[^\s@]+$';
+public const PASSWORD_MIN_LENGTH = 8;
+```
+
+```blade
+<form id="signup-form"
+    data-ascii-pattern="{{ $rules['asciiPattern'] }}"
+    data-password-min-length="{{ $rules['passwordMinLength'] }}">
+```
+
+```js
+const asciiPattern = new RegExp(form.dataset.asciiPattern);
+```
+
+<h3>メールアドレスの重複</h3>
+
+`unique:users,email` ルールと、専用のエラーメッセージで対応している。
+自分でデータベースを検索して判定する必要はない。
+
+```php
+'email.unique' => 'このメールアドレスはすでに使用されています',
+```
+
+<h3>パスワード</h3>
+
+`User` モデルのミューテタで自動的にハッシュ化されるため、
+コントローラ側では平文のまま渡してよい。
+
+- - -
+
+<h2>テスト</h2>
+
+```
+php artisan test
+```
+
+`tests/Feature/` に41件。Bug1〜5 に対応するテストにはコメントで対応を記載している。
+画面でボタンを隠すだけでは URL を直接叩かれた場合に防げないため、
+「直接 PUT / DELETE しても弾かれること」も検証している。
