@@ -2,164 +2,85 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Post;
-use App\Http\Controllers\Controller,
-    Session;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class PostController extends Controller
 {
     /**
      * 投稿画面遷移
      */
-    function create()
+    public function create(): View
     {
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            // ログインしていなければログインページへ
-            return redirect('/login');
-        }
-
-        // 画面表示
         return view('post.index');
     }
 
     /**
      * 投稿処理
      */
-    function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            // ログインしていなければログインページへ
-            return redirect('/login');
-        }
+        $request->user()->posts()->create([
+            'content' => $request->postContent,
+        ]);
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-
-        // データ登録
-        $post = new Post;
-        $post->user = $loginUser->id;
-        $post->content = $request->postContent;
-        $post->save();
-
-        return redirect('/');
+        return redirect()->route('home');
     }
 
     /**
      * 投稿詳細画面遷移
+     *
+     * 存在しない ID は自動的に 404 になる。
      */
-    public function show($id)
+    public function show(Post $post): View
     {
-        // 指定したIDの投稿情報を取得する
-        $post = Post::find($id);
+        $post->load('user');
 
-        // 投稿が存在するか判定
-        if ($post == null) {
-            return dd('存在しない投稿です');
-        }
-
-        // 投稿者を取得
-        $user = $post->user();
-
-        $isOwnPost = false;
-
-        // セッションにログイン情報があるか確認
-        if (Session::exists('user')) {
-            // ログイン中のユーザーの情報を取得する
-            $loginUser = Session::get('user');
-            // 自分自身の投稿ページか判定
-            $isOwnPost = $loginUser->id == $user->id;
-        }
-
-        // 画面表示
-        return view('post.detail', compact('post', 'user', 'isOwnPost'));
+        return view('post.detail', [
+            'post' => $post,
+            'user' => $post->user,
+        ]);
     }
 
     /**
-     * 投稿編集画面
+     * 投稿編集画面遷移
      */
-    public function edit($id)
+    public function edit(Post $post): View
     {
-        $post = Post::find($id);
-        // 投稿が存在するか判定
-        if ($post == null) {
-            return dd('存在しない投稿です');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
+        // 投稿者本人でなければ 403
+        $this->authorize('update', $post);
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-        // 投稿者を取得する
-        $user = $post->user();
-        // 自分自身の投稿ページか判定
-        if ($loginUser->id != $user->id) {
-            return redirect('/');
-        }
-
-        // 画面表示
         return view('post.edit', compact('post'));
     }
 
     /**
      * 投稿編集処理
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Post $post): RedirectResponse
     {
-        // idから投稿を取得
-        $post = Post::find($id);
+        // 画面を経由せず直接 PUT された場合もここで弾かれる
+        $this->authorize('update', $post);
 
-        // 投稿が存在するか判定
-        if ($post == null) {
-            return dd('存在しない投稿です');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
+        $post->update([
+            'content' => $request->postContent,
+        ]);
 
-        // データ登録
-        $post->content = $request->postContent;
-        $post->save();
-
-        // 画面表示
-        return redirect('/post/detail/' . $post->id);
+        return redirect()->route('posts.show', $post);
     }
 
     /**
      * 投稿削除処理
      */
-    public function delete($id)
+    public function destroy(Post $post): RedirectResponse
     {
-        // idから投稿を取得
-        $post = Post::find($id);
+        $this->authorize('delete', $post);
 
-        // 投稿が存在するか判定
-        if ($post == null) {
-            return dd('存在しない投稿です');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
-
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-        // 投稿者を取得する
-        $user = $post->user();
-        // 自分自身の投稿ページか判定
-        if ($loginUser->id != $user->id) {
-            return redirect('/');
-        }
-
-        // データ登録
+        // 論理削除
         $post->is_deleted = true;
         $post->save();
 
-        return redirect('/');
+        return redirect()->route('home');
     }
 }

@@ -1,7 +1,11 @@
+/* =========================================================
+ * 共通
+ * =======================================================*/
 body {
     background-color: whitesmoke;
 }
 
+/* ヘッダー(60px)とフッター(50px)に隠れないための余白 */
 .page {
     margin: 60px 0 60px 0;
 }
@@ -29,7 +33,6 @@ button {
 
 .button-white:active {
     background-color: lightgray;
-    ;
 }
 
 .button-black {
@@ -40,4 +43,452 @@ button {
 .button-black:active {
     background-color: whitesmoke;
     color: black;
+}
+
+/* バリデーションエラーの表示(全画面共通) */
+.error-message {
+    margin-top: 5px;
+    font-size: 12px;
+    color: red;
+}
+
+.error-message ul {
+    list-style: none;
+}
+
+/* 投稿本文の改行を保持しつつ、長い単語で横スクロールさせない */
+.content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* ページネーション */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 12px;
+}
+
+.pagination-wrapper a,
+.pagination-wrapper span {
+    padding: 0 6px;
+}
+
+.empty-message {
+    padding: 20px 10px;
+    color: gray;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* =========================================================
+ * 共通ヘッダー
+ * =======================================================*/
+header {
+    background-color: gray;
+    color: whitesmoke;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    width: 100vw;
+    padding: 0 10px;
+    z-index: 10;
+    position: fixed;
+    top: 0;
+}
+
+header .logo {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+header .user-icon {
+    width: 40px;
+    height: 40px;
+}
+
+header .user {
+    display: flex;
+    font-size: 16px;
+}
+
+header .username {
+    line-height: 40px;
+}
+
+header .logout {
+    font-size: 12px;
+    text-align: end;
+    background: none;
+    border: none;
+    color: inherit;
+    font-weight: normal;
+    padding: 0;
+    cursor: pointer;
+}
+
+header .menu {
+    display: flex;
+    font-size: 12px;
+}
+
+header .menu-item {
+    margin: 0 3px;
+    padding: 3px;
+    border: solid 1px whitesmoke;
+    border-radius: 5px;
+}
+
+/* =========================================================
+ * 共通フッター
+ * =======================================================*/
+footer {
+    background-color: gray;
+    height: 50px;
+    width: 100vw;
+    z-index: 10;
+    position: fixed;
+    bottom: 0;
+    display: flex;
+    justify-content: end;
+    align-items: center;
+}
+
+footer button {
+    margin-right: 10px;
+}
+
+/* =========================================================
+ * ホーム画面
+ * =======================================================*/
+.home-page .page-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: gray;
+    padding-left: 10px;
+}
+
+.home-page .post-list {
+    margin-top: 10px;
+}
+
+.home-page .post {
+    display: flex;
+    width: 100vw;
+    padding: 0 10px;
+}
+
+.home-page .post .container {
+    width: 100%;
+}
+
+.home-page .user-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.home-page .user-name {
+    line-height: 40px;
+}
+
+.home-page .content {
+    font-size: 14px;
+}
+
+.home-page .time-stamp {
+    font-size: 8px;
+    text-align: end;
+}
+
+/* =========================================================
+ * ログイン画面 / 新規登録画面
+ * =======================================================*/
+.form-page {
+    display: flex;
+    justify-content: center;
+}
+
+.form-page .title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.form-page .form {
+    width: 60vw;
+}
+
+.form-page input {
+    height: 30px;
+    border-radius: 10px;
+    background-color: lightgray;
+}
+
+.form-page .form-item {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+}
+
+.form-page .submit-button {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.form-page button {
+    width: 50%;
+    height: 30px;
+    font-size: 18px;
+}
+
+.form-page .form-link {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 12px;
+    text-decoration: underline;
+}
+
+/* =========================================================
+ * 投稿画面
+ * =======================================================*/
+.post-page .form {
+    display: flex;
+    flex-direction: column;
+}
+
+.post-page .post-button {
+    text-align: end;
+    margin: 20px 20px 0 0;
+}
+
+.post-page button {
+    height: 35px;
+    width: 90px;
+}
+
+.post-page .counter {
+    text-align: end;
+    margin: 4px 20px 0 0;
+    font-size: 12px;
+    color: gray;
+}
+
+.post-page .counter.over {
+    color: red;
+}
+
+/* =========================================================
+ * 投稿詳細画面
+ * =======================================================*/
+.post-detail-page .user-icon {
+    width: 50px;
+    height: 50px;
+}
+
+.post-detail-page .user-info {
+    display: flex;
+}
+
+.post-detail-page .user-name {
+    line-height: 50px;
+    font-size: 18px;
+}
+
+.post-detail-page .time-stamp {
+    text-align: end;
+    font-size: 14px;
+}
+
+.post-detail-page .post {
+    padding: 0 10px;
+}
+
+.post-detail-page .menu {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+}
+
+.post-detail-page .menu-item {
+    font-size: 16px;
+    margin: 0 2px;
+    background: none;
+    border: none;
+    font-weight: normal;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* =========================================================
+ * 投稿編集画面
+ * =======================================================*/
+.post-edit-page .post {
+    display: flex;
+    flex-direction: column;
+}
+
+.post-edit-page .title {
+    padding: 10px 0 0 10px;
+}
+
+.post-edit-page .save-button {
+    display: flex;
+    justify-content: end;
+    margin: 10px 10px 0 0;
+}
+
+/* =========================================================
+ * ユーザー画面
+ * =======================================================*/
+.user-page .page-container {
+    padding: 0 10px;
+}
+
+.user-page .user-info .user-icon {
+    width: 60px;
+    height: 60px;
+}
+
+.user-page .user-info {
+    margin-bottom: 10px;
+}
+
+.user-page .user-row {
+    display: flex;
+    justify-content: space-between;
+    line-height: 60px;
+}
+
+.user-page .user-info .user-name {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.user-page .biography {
+    font-size: 14px;
+    padding: 8px 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.user-page .follow-info {
+    display: flex;
+    font-size: 14px;
+}
+
+.user-page .follow-info .follow {
+    margin-right: 5px;
+}
+
+.user-page .title {
+    font-size: 18px;
+    font-weight: bold;
+    color: gray;
+    margin-bottom: 6px;
+}
+
+.user-page .post {
+    display: flex;
+    padding: 0 10px;
+}
+
+.user-page .post .container {
+    width: 90%;
+}
+
+.user-page .post-list .user-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.user-page .user-name {
+    line-height: 40px;
+}
+
+.user-page .content {
+    font-size: 14px;
+}
+
+.user-page .time-stamp {
+    font-size: 8px;
+    text-align: end;
+}
+
+/* =========================================================
+ * プロフィール編集画面
+ * =======================================================*/
+.user-edit-page .user-name {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.user-edit-page .biography {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-edit-page .save-button {
+    display: flex;
+    justify-content: end;
+    margin: 10px 10px 0 0;
+}
+
+.user-edit-page label {
+    padding-left: 5px;
+}
+
+/* =========================================================
+ * フォロー/フォロワーリスト画面
+ * =======================================================*/
+.follow-page .tab {
+    display: flex;
+    justify-content: space-evenly;
+    height: 30px;
+}
+
+.follow-page .tab-item {
+    width: 50vw;
+    text-align: center;
+    background: none;
+    border: none;
+    font-weight: normal;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+.follow-page .user-icon {
+    width: 35px;
+    height: 35px;
+    margin-right: 5px;
+}
+
+.follow-page .user {
+    font-size: larger;
+    font-weight: bolder;
+    padding: 5px 0 10px 10px;
+}
+
+.follow-page .user-list-item {
+    display: flex;
+    padding: 0 0 10px 10px;
+}
+
+.follow-page .user-name {
+    font-weight: bold;
+}
+
+.follow-page .biography {
+    font-size: small;
+}
+
+.follow-page .hidden {
+    display: none;
+}
+
+.follow-page .selected {
+    text-decoration: underline overline lightblue;
 }

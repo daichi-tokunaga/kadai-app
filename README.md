@@ -29,7 +29,28 @@
 composer install
 ```
 
-<h2>3. データベースの構築</h2>
+<h2>3. 環境設定ファイルの作成</h2>
+
+このアプリはデータベースの接続先などの設定を `.env` ファイルから読み込む。
+`.env` は環境ごとに内容が変わるためリポジトリには含まれておらず、自分で用意する。
+
+1. `composer install` を実行すると `.env.example` がコピーされて `.env` が作られる。
+作られていない場合は手動でコピーする
+
+```
+copy .env.example .env
+```
+
+1. アプリケーションキーを発行する
+
+```
+php artisan key:generate
+```
+
+> `.env` に書いたパスワードなどをうっかり公開しないため、
+> `.env` は `.gitignore` に登録されている。**このファイルは commit しないこと。**
+
+<h2>4. データベースの構築</h2>
 
 1. xammpのコントロールパネルからapacheとMySQLを起動
 
@@ -56,7 +77,16 @@ Would you like to create it? (yes/no) [no]
 php artisan db:seed
 ```
 
-<h2>4. アプリケーションの起動</h2>
+> **すでにデータベースを作成済みの場合**
+> テーブル定義が変更されているため、作り直しが必要です。
+> 下記のコマンドでテーブルの再作成と初期データ投入をまとめて実行できます。
+> (既存のデータはすべて消えます)
+>
+> ```
+> php artisan migrate:fresh --seed
+> ```
+
+<h2>5. アプリケーションの起動</h2>
 
 <h3>起動</h3>
 
@@ -75,6 +105,14 @@ localhost:8000
 ```
 e-mail: oca@email.com
 password: oca
+```
+
+<h2>6. テストの実行</h2>
+
+テストは SQLite のインメモリデータベースで実行されるため、MySQL を起動していなくても動きます。
+
+```
+php artisan test
 ```
 
 - - -
@@ -174,3 +212,125 @@ password: oca
 > * 8文字以上であること
 
 - - -
+
+- - -
+- - -
+
+<h1>設計メモ</h1>
+
+課題に取り組む前に読むこと。
+このアプリは Laravel の標準的な書き方に沿って作られている。
+**課題の修正も、下記の書き方に合わせて実装すること。**
+
+- - -
+
+<h2>認証</h2>
+
+Laravel 標準の認証機構(`Auth` ファサード)を使用している。
+
+* `App\Models\User` は `Authenticatable` を継承している
+* パスワードは `User` モデルのミューテタで自動的にハッシュ化される(平文はデータベースに入らない)
+* ログイン判定は各コントローラではなく `routes/web.php` のミドルウェア(`auth` / `guest`)で行う
+  ため、コントローラ内にログイン判定を書く必要はない
+* ログイン中のユーザーは `Auth::user()` または `$request->user()` で取得する
+
+- - -
+
+<h2>認可</h2>
+
+「本人だけができる操作」の判定はポリシーに集約している。
+
+| ポリシー | 判定内容 |
+| --- | --- |
+| `App\Policies\PostPolicy` | 投稿の編集・削除は投稿者本人のみ |
+| `App\Policies\UserPolicy` | プロフィール編集は本人のみ / 自分自身はフォローできない |
+
+* コントローラ側は `$this->authorize('update', $post)` で呼び出す(違反時は 403)
+* 画面側は `@can('update', $post)` で表示を切り替えられる
+
+- - -
+
+<h2>バリデーション</h2>
+
+フォームリクエスト(`app/Http/Requests/`)に定義する。
+コントローラの引数の型を `Request` からフォームリクエストに差し替えるだけで適用される。
+
+| クラス | 対象 |
+| --- | --- |
+| `LoginRequest` | ログイン |
+| `ProfileRequest` | プロフィール編集 |
+
+エラーメッセージの表示には `<x-error-messages />` コンポーネントが使える。
+`$errors` に入っているメッセージを一覧で表示する。
+
+JavaScript 側でエラーを表示する場合は `public/js/app.js` の `renderErrors()` が使える。
+
+> **ヒント**
+> バリデーションルールを PHP と JavaScript の両方に直接書くと、片方を直し忘れて
+> 食い違いが起きる。定数として一箇所に定義し、`data-*` 属性でビューから
+> JavaScript に渡すようにすると二重管理を避けられる。
+
+- - -
+
+<h2>データベース</h2>
+
+| テーブル | 補足 |
+| --- | --- |
+| `users` | |
+| `posts` | `is_deleted` による論理削除 |
+| `follows` | `users` の多対多の中間テーブル。`(user_id, follow_user_id)` に一意制約があり二重フォローを防ぐ |
+
+* カラム名は Laravel の規約に合わせて `user_id` / `follow_user_id`
+* 外部キー制約とインデックスを設定済み
+* 文字セットは `utf8mb4`。`utf8`(utf8mb3) では絵文字が保存できず投稿時にエラーになる
+
+<h3>リレーション</h3>
+
+```php
+$user->posts        // ユーザーの投稿 (hasMany)
+$user->followings   // フォローしているユーザー (belongsToMany)
+$user->followers    // フォローされているユーザー (belongsToMany)
+$post->user         // 投稿者 (belongsTo)
+```
+
+一覧を表示するときは `with()` / `loadCount()` を使い、N+1 クエリを発生させないこと。
+
+- - -
+
+<h2>ルーティング</h2>
+
+* ルートには名前が付いている。リンクは `href="/user/1"` ではなく
+  `href="{{ route('users.show', $user) }}"` と書く
+* `{user}` / `{post}` はルートモデルバインディングにより、コントローラの引数に
+  モデルが直接渡される。存在しない ID は自動的に 404 になるため
+  コントローラ側で存在チェックを書く必要はない
+
+- - -
+
+<h2>画面</h2>
+
+* すべての画面は `resources/views/layouts/app.blade.php` を `@extends` する
+* CSS は `public/css/app.css` に集約する(各 Blade に `<style>` を書かない)
+* JavaScript は `public/js/app.js` に集約する
+* 確認ダイアログは `<button data-confirm="...">` と書けば `app.js` が処理する
+
+- - -
+
+<h2>テスト</h2>
+
+```
+php artisan test
+```
+
+SQLite のインメモリデータベースで実行されるため、MySQL を起動していなくても動く。
+課題に取り組んだあと、既存のテストが壊れていないことを確認すること。
+
+なお、課題の対象になっている箇所のテストは意図的に用意していない。
+自分で書いてみると理解が深まる。
+
+- - -
+
+<h2>未整理の項目</h2>
+
+* `package.json` / `vite.config.js` が存在するが、現状 Vite は使用しておらず
+  `public/` 配下の CSS / JS を直接読み込んでいる

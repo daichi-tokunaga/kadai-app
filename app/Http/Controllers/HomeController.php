@@ -2,58 +2,41 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller,
-    Session;
-
+use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class HomeController extends Controller
 {
     /**
-     * ホーム画面遷移
+     * 1ページあたりの投稿表示件数
      */
-    public function index(Request $request)
-    {
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            // ログインしていなければログインページへ
-            return redirect('/login');
-        }
-
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-
-        // フォローしているユーザーを取得
-        $users = $loginUser->followUsers();
-        // ログインしているユーザー自身も表示に含める
-        array_push($users, $loginUser);
-        // 各ユーザーの投稿を取得
-        $posts = [];
-        foreach ($users as $user) {
-            foreach ($user->posts() as $post) {
-                array_push($posts, array('user' => $user, 'post' => $post));
-            }
-        }
-
-        // 投稿を時系列順に並べ替え
-        if (count($posts) > 0) {
-            $posts = $this->sort($posts);
-        }
-        
-        // 画面表示
-        return view('home', compact('posts'));
-    }
+    private const PER_PAGE = 20;
 
     /**
-     * ホームに表示する投稿を時系列順に並べ替え
+     * ホーム画面遷移
+     *
+     * 自分とフォロー中のユーザーの投稿を新しい順に表示する。
      */
-    private function sort($array)
+    public function index(Request $request): View
     {
-        foreach ($array as $key => $value) {
-            $standard_key_array[$key] = $value['post']['created_at'];
-        }
-        array_multisort($standard_key_array, SORT_DESC, $array);
+        $loginUser = $request->user();
 
-        return $array;
+        // 「自分 + フォロー中のユーザー」の ID を1クエリで取得する
+        $userIds = $loginUser->followings()
+            ->pluck('users.id')
+            ->push($loginUser->id);
+
+        // 並べ替えも絞り込みも SQL 側で行う。
+        // with('user') により投稿者の取得が1クエリにまとまる(N+1 の解消)。
+        // 削除済みの投稿は SoftDeletes によって自動的に除外される。
+        $posts = Post::query()
+            ->whereIn('user_id', $userIds)
+            ->with('user')
+            ->latest()
+            ->latest('id')
+            ->paginate(self::PER_PAGE);
+
+        return view('home', compact('posts'));
     }
 }

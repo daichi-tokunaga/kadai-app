@@ -2,67 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller,
-    Session;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class FollowController extends Controller
 {
     /**
      * フォロー/フォロワーリスト画面遷移
+     *
+     * /user/{id}/follow と /user/{id}/follower で同じ画面を使い、
+     * どちらのタブを開いた状態にするかをサーバー側で決める。
      */
-    public function index($id)
+    public function index(Request $request, User $user): View
     {
+        $user->load(['followings', 'followers']);
 
-        // 指定したIDのユーザー情報を取得する
-        $user = User::find($id);
+        $activeTab = $request->routeIs('users.followers') ? 'follower' : 'follow';
 
-        // ユーザーが存在するか判定
-        if ($user == null) {
-            return dd('存在しないユーザーです');
-        }
-
-        // フォローとフォロワーの取得
-        $followUsers = $user->followUsers();
-        $followerUsers = $user->followerUsers();
-
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-
-        // 画面表示
-        return view('user.follow', compact('user', 'followUsers', 'followerUsers'));
+        return view('user.follow', compact('user', 'activeTab'));
     }
 
     /**
-     * フォロー/フォロワー解除処理
+     * フォロー処理
      */
-    public function update(Request $request, $id)
+    public function store(Request $request, User $user): RedirectResponse
     {
-        // idからユーザーを取得
-        $user = User::find($id);
+        // 自分自身はフォローできない
+        $this->authorize('follow', $user);
 
-        // ユーザーが存在するか判定
-        if ($user == null) {
-            return dd('存在しないユーザーです');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
+        $request->user()->follow($user);
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
+        return redirect()->route('users.show', $user);
+    }
 
-        if ($request->isFollow) {
-            // フォロー処理
-            $loginUser->follow($id);
-        } else {
-            // フォロー解除処理
-            $loginUser->unfollow($id);
-        }
+    /**
+     * フォロー解除処理
+     */
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        $request->user()->unfollow($user);
 
-        // 画面表示
-        return redirect('/user/' . $user->id);
+        return redirect()->route('users.show', $user);
     }
 }

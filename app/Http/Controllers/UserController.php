@@ -2,117 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller,
-    Session;
+use App\Http\Requests\ProfileRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class UserController extends Controller
 {
     /**
+     * 1ページあたりの投稿表示件数
+     */
+    private const PER_PAGE = 20;
+
+    /**
      * ユーザー画面遷移
      */
-    public function show($id)
+    public function show(Request $request, User $user): View
     {
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            // ログインしていなければログインページへ
-            return redirect('/login');
-        }
-
-        // 指定したIDのユーザー情報を取得する
         $user = User::find(3);
 
-        // ユーザーが存在するか判定
-        if ($user == null) {
-            return dd('存在しないユーザーです');
-        }
+        // フォロー数 / フォロワー数を件数クエリだけで取得する
+        $user->loadCount(['followings', 'followers']);
 
-        // ユーザーの投稿を取得
-        $posts = $user->posts();
-        // フォロー/フォロワー数の取得
-        $followCount = count($user->followUsers());
-        $followerCount = count($user->followerUsers());
+        $posts = $user->posts()->paginate(self::PER_PAGE);
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-        // 自分自身のユーザーページか判定
-        $isOwnPage = $loginUser->id == $user->id;
+        $loginUser = $request->user();
+        $isOwnPage = $loginUser->is($user);
+        $isFollowing = ! $isOwnPage && $loginUser->isFollowing($user);
 
-        // フォロー済みかどうか判定
-        $isFollowed = false;
-        if (!$isOwnPage) {
-            $isFollowed = $loginUser->isFollowed($user->id);
-        }
-
-        // 画面表示
-        return view('user.index', compact('user', 'posts', 'followCount', 'followerCount', 'isOwnPage', 'isFollowed'));
+        return view('user.index', compact('user', 'posts', 'isOwnPage', 'isFollowing'));
     }
 
     /**
      * プロフィール編集画面遷移
      */
-    public function edit($id)
+    public function edit(User $user): View
     {
-        $user = User::find($id);
-        // ユーザーが存在するか判定
-        if ($user == null) {
-            return dd('存在しないユーザーです');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
+        // 本人でなければ 403
+        $this->authorize('update', $user);
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-        // 自分自身のユーザーページか判定
-        if ($loginUser->id != $user->id) {
-            return redirect('/');
-        }
-
-        // 画面表示
         return view('user.edit', compact('user'));
     }
 
     /**
      * プロフィール編集処理
      */
-    public function update(Request $request, $id)
+    public function update(ProfileRequest $request, User $user): RedirectResponse
     {
-        // idからユーザーを取得
-        $user = User::find($id);
+        $this->authorize('update', $user);
 
-        // 投稿が存在するか判定
-        if ($user == null) {
-            return dd('存在しないユーザーです');
-        }
-        // セッションにログイン情報があるか確認
-        if (!Session::exists('user')) {
-            return redirect('/');
-        }
+        $validated = $request->validated();
 
-        // ログイン中のユーザーの情報を取得する
-        $loginUser = Session::get('user');
-        // 自分自身の投稿ページか判定
-        if ($loginUser->id != $user->id) {
-            return redirect('/');
-        }
+        $user->update([
+            'name' => $validated['username'],
+            'biography' => $validated['biography'] ?? null,
+        ]);
 
-        // データ登録
-        $user->name = $request->username;
-        $user->biography = $request->biography;
-        $user->save();
-
-        // 画面表示
-        return redirect('/user/' . $user->id);
+        return redirect()->route('users.show', $user);
     }
-
 
     /**
      * 新規登録画面遷移
      */
-    public function create()
+    public function create(): View
     {
         return view('user.signup');
     }
@@ -120,10 +73,10 @@ class UserController extends Controller
     /**
      * 新規登録処理
      */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        //TODO 登録処理
+        // TODO 登録処理
 
-        return redirect('/');
+        return redirect()->route('home');
     }
 }

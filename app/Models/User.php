@@ -2,84 +2,107 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Follow;
-use App\Models\Post;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Hash;
 
-class User extends Model
+class User extends Authenticatable
 {
     use HasFactory;
 
     /**
-     * ユーザーの投稿を取得する
+     * 一括代入を許可する属性
+     *
+     * @var array<int, string>
      */
-    public function posts()
+    protected $fillable = [
+        'name',
+        'email',
+        'biography',
+        'password',
+    ];
+
+    /**
+     * 配列/JSON 化の際に隠す属性
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * パスワードは代入時に必ずハッシュ化する。
+     * これにより平文がデータベースに入ることはない。
+     */
+    protected function password(): Attribute
     {
-        return Post::where('user', $this->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        return Attribute::make(
+            set: fn (string $value) => Hash::make($value),
+        );
     }
 
     /**
-     * ユーザーがフォローしているユーザーのリストを取得する
+     * このユーザーの投稿
      */
-    public function followUsers()
+    public function posts(): HasMany
     {
-        $followUsers = Follow::where('user', $this->id)->get();
-        $result = [];
-        foreach ($followUsers as $followUser) {
-            array_push($result, $followUser->followUser());
+        return $this->hasMany(Post::class)->latest();
+    }
+
+    /**
+     * このユーザーがフォローしているユーザー
+     */
+    public function followings(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'follows', 'user_id', 'follow_user_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * このユーザーをフォローしているユーザー
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'follows', 'follow_user_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * このユーザーが $user をフォローしているか判定する
+     */
+    public function isFollowing(User $user): bool
+    {
+        // ロード済みならクエリを投げずに判定する
+        if ($this->relationLoaded('followings')) {
+            return $this->followings->contains($user->id);
         }
-        return $result;
+
+        return $this->followings()->whereKey($user->id)->exists();
     }
 
     /**
-     * ユーザーをフォローしているユーザーのリストを取得する
+     * $user をフォローする。自分自身・二重フォローは無視される。
      */
-    public function followerUsers()
+    public function follow(User $user): void
     {
-        $followerUsers = Follow::where('follow_user', $this->id)->get();
-        $result = [];
-        foreach ($followerUsers as $followUser) {
-            array_push($result, $followUser->followerUser());
-        }
-        return $result;
-    }
-
-    /**
-     * $idのユーザーがこのユーザーをフォローしているか判定する
-     */
-    public function isFollowed($id)
-    {
-        foreach ($this->followUsers() as $followUser) {
-            if ($followUser->id == $id) {
-                return true;
-            }
+        if ($this->is($user)) {
+            return;
         }
 
-        return false;
+        // syncWithoutDetaching は既存行があれば何もしないため二重フォローにならない
+        $this->followings()->syncWithoutDetaching([$user->id]);
     }
 
     /**
-     * $idのユーザーをフォローする
+     * $user のフォローを解除する。フォローしていなければ何も起きない。
      */
-    public function follow($id)
+    public function unfollow(User $user): void
     {
-        $follow = new Follow;
-        $follow->user = $this->id;
-        $follow->follow_user = $id;
-        $follow->save();
-    }
-
-    /**
-     * $idのユーザーをフォロー解除する
-     */
-    public function unfollow($id)
-    {
-        Follow::where('user', $this->id)
-            ->where('follow_user', $id)
-            ->first()
-            ->delete();
+        $this->followings()->detach($user->id);
     }
 }

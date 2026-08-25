@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * パスワードは User モデルのミューテタで自動的にハッシュ化される。
      *
      * @return void
      */

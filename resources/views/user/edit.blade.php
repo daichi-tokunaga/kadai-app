@@ -1,59 +1,31 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- プロフィール編集画面 --}}
+@extends('layouts.app')
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="{{ asset('/css/reset.css') }}" />
-    <link rel="stylesheet" href="{{ asset('/css/app.css') }}" />
+@section('title', 'プロフィール編集')
+@section('page-class', 'user-edit-page')
 
-    <title>kadai-app | プロフィール編集</title>
-</head>
-<!-- プロフィール編集画面 -->
+@section('content')
+<form action="{{ route('users.update', $user) }}" method="post">
+    @csrf
+    @method('PUT')
 
-<body class="">
-    <x-header></x-header>
-    <div class="page user-edit-page">
-        <form action="/user/edit/{{ $user->id }}" method="post">
-            @csrf @method('PUT')
-            <div class="user-info">
-                <div class="user-name">
-                    <label for="name">ユーザー名</label>
-                    <input class="name" type="text" name="username" value="{{ $user->name }}" />
-                </div>
-                <div class="biography">
-                    <label for="biography">自己紹介</label>
-                    <textarea name="biography" id="" cols="30" rows="10">{{ $user->biography }}</textarea
-                        >
-                    </div>
-                </div>
-                <div class="save-button">
-                    <button class="button-white">変更を保存</button>
-                </div>
-            </form>
+    <div class="user-info">
+        <div class="user-name">
+            <label for="username">ユーザー名</label>
+            <input class="name" type="text" id="username" name="username"
+                value="{{ old('username', $user->name) }}" />
         </div>
-    </body>
-    <script src="{{ asset('/js/app.js') }}"></script>
-    <style scoped>
-        .user-edit-page .user-name {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 10px;
-        }
 
-        .user-edit-page .biography {
-            display: flex;
-            flex-direction: column;
-        }
+        <div class="biography">
+            <label for="biography">自己紹介</label>
+            <textarea name="biography" id="biography" cols="30" rows="10">{{ old('biography', $user->biography) }}</textarea>
+        </div>
+    </div>
 
-        .user-edit-page .save-button {
-            display: flex;
-            justify-content: end;
-            margin: 10px 10px 0 0;
-        }
+    <x-error-messages />
 
-        .user-edit-page label {
-            padding-left: 5px;
-        }
-    </style>
-</html>
+    <div class="save-button">
+        <button class="button-white" type="submit">変更を保存</button>
+    </div>
+</form>
+@endsection

@@ -1,98 +1,33 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- 投稿詳細画面 --}}
+@extends('layouts.app')
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Styles -->
-    <link rel="stylesheet" href="{{ asset('/css/reset.css') }}" />
+@section('title', '投稿詳細')
+@section('page-class', 'post-detail-page')
 
-    <title>kadai-app | 投稿詳細</title>
-</head>
-<!-- 投稿詳細画面 -->
-
-<body class="">
-    <x-header></x-header>
-    <div class="page post-detail-page">
-        <div class="post">
-            <a href="/user/{{ $user->id }}">
-                <div class="user-info">
-                    <img class="user-icon" src="{{ asset('/img/user_icon.png') }}" alt="" />
-                    <div class="user-name">{{ $user->name }}</div>
-                </div>
-                <div class="content">{{ $post->content }}</div>
-                <div class="time-stamp">{{ $post->created_at }}</div>
-            </a>
-            <div class="menu">
-                <div class="menu-item font-blue">
-                    <a href="/post/edit/{{ $post->id }}">編集</a>
-                </div>
-                <form name="delete" action="/post/delete/{{ $post->id }}" method="post">
-                    @csrf
-                    <div class="menu-item font-red" onclick="deletePost()">
-                        削除
-                    </div>
-                </form>
-            </div>
+@section('content')
+<div class="post">
+    <a href="{{ route('users.show', $user) }}">
+        <div class="user-info">
+            <img class="user-icon" src="{{ asset('/img/user_icon.png') }}" alt="" />
+            <div class="user-name">{{ $user->name }}</div>
         </div>
-    </div>
-</body>
-<x-footer></x-footer>
-<script src="{{ asset('/js/app.js') }}"></script>
-<script>
-    function deletePost() {
-        if (confirm("削除しますか?")) {
-            document.delete.submit();
-        }
-    }
-</script>
-<style scoped>
-    .post-detail-page .user-icon {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .post-detail-page .user-info {
-        display: flex;
-    }
-    
-    .post-detail-page .user-name {
-        line-height: 50px;
-        font-size: 18px;
-    }
-    
-    .post-detail-page .time-stamp {
-        text-align: end;
-        font-size: 14px;
-    }
-    
-    .post-detail-page .post {
-        padding: 0 10px;
-    }
-    
-    .post-detail-page .menu {
-        display: flex;
-        justify-content: end;
-    }
-    
-    .post-detail-page .menu-item {
-        font-size: 16px;
-        margin: 0 2px;
-    }
-    
-    .post-detail-page .menu-item {
-        font-size: 16px;
-        margin: 0 2px;
-    }
-    
-    .post-detail-page .menu-item {
-        font-size: 16px;
-        margin: 0 2px;
-    }
-    
-    .post-detail-page .content {
-        word-wrap: break-word;
-    }
-</style>
+    </a>
+    <a href="{{ route('posts.show', $post) }}">
+        <div class="content">{{ $post->content }}</div>
+        <div class="time-stamp">{{ $post->created_at }}</div>
+    </a>
 
-</html>
+    <div class="menu">
+        <div class="menu-item font-blue">
+            <a href="{{ route('posts.edit', $post) }}">編集</a>
+        </div>
+        <form action="{{ route('posts.destroy', $post) }}" method="post">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="menu-item font-red" data-confirm="削除しますか?">
+                削除
+            </button>
+        </form>
+    </div>
+</div>
+@endsection

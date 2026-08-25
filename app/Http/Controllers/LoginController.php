@@ -2,49 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Http\Requests\LoginRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller,
-    Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class LoginController extends Controller
 {
     /**
      * ログイン画面遷移
      */
-    public function index()
+    public function create(): View
     {
-        $errorMessage = null;
-        return view('login', compact('errorMessage'));
+        return view('login');
     }
 
     /**
      * ログイン処理
      */
-    public function login(Request $request)
+    public function store(LoginRequest $request): RedirectResponse
     {
-        // 入力されたユーザーが存在するか確認
-        $user = User::where('email', $request->email)->first();
-        $errorMessage = 'ユーザーが存在しないかパスワードが間違っています';
-        if ($user == null) {
-            return view('login', compact('errorMessage'));
+        // Auth::attempt がメールアドレスの検索とハッシュ照合をまとめて行う
+        if (! Auth::attempt($request->validated(), $request->boolean('remember'))) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'ユーザーが存在しないかパスワードが間違っています']);
         }
 
-        // パスワードがあっているか確認
-        if ($user->password != $request->password) {
-            return view('login', compact('errorMessage'));
-        }
+        // セッションフィクセーション対策としてセッション ID を振り直す
+        $request->session()->regenerate();
 
-        // 成功
-        Session::put('user', $user);
-        return redirect('/');
+        return redirect()->intended(route('home'));
     }
 
     /**
      * ログアウト処理
      */
-    public function logout()
+    public function destroy(Request $request): RedirectResponse
     {
-        return redirect('/login');
+        return redirect()->route('login');
     }
 }

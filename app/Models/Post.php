@@ -4,17 +4,35 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Post extends Model
 {
     use HasFactory;
 
     /**
-     * この投稿を投稿したユーザーを取得する
+     * 一括代入を許可する属性
+     *
+     * @var array<int, string>
      */
-    public function user()
+    protected $fillable = [
+        'content',
+    ];
+
+    /**
+     * 属性のキャスト
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_deleted' => 'boolean',
+    ];
+
+    /**
+     * この投稿を投稿したユーザー
+     */
+    public function user(): BelongsTo
     {
-        return User::find($this->user);
+        return $this->belongsTo(User::class);
     }
 }
