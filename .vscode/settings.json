@@ -1,10 +1,16 @@
 {
     "workbench.colorTheme": "Dark+",
     "workbench.startupEditor": "none",
+
     "editor.defaultFormatter": "bmewburn.vscode-intelephense-client",
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
-    "intelephense.diagnostics.undefinedVariables": false,
+
+    // 変数名のタイポ($postContnet など)はエディタ上で気付けるようにしておく。
+    // 下の項目を false にしているのは、Eloquent が実行時にプロパティやメソッドを
+    // 生やす仕組み($post->content / Post::where() など)のため、
+    // 有効にすると実際には正しいコードに大量の警告が出てしまうから。
+    "intelephense.diagnostics.undefinedVariables": true,
     "intelephense.diagnostics.undefinedTypes": false,
     "intelephense.diagnostics.undefinedSymbols": false,
     "intelephense.diagnostics.undefinedProperties": false,
@@ -12,11 +18,12 @@
     "intelephense.diagnostics.undefinedFunctions": false,
     "intelephense.diagnostics.undefinedConstants": false,
     "intelephense.diagnostics.undefinedClassConstants": false,
-    "files.associations": {
-    "*.blade.php": "html"
-},
-"[html]": {
-    "editor.defaultFormatter": "vscode.html-language-features"
-},
-"blade.format.enable": true
+
+    // Blade ファイルは保存時の自動整形を行わない。
+    // HTML フォーマッタで整形すると @if / @foreach / @can の周りが崩れることがある。
+    "[blade]": {
+        "editor.formatOnSave": false,
+        "editor.formatOnPaste": false
+    },
+    "blade.format.enable": false
 }

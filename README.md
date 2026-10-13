@@ -52,9 +52,13 @@ php artisan key:generate
 
 <h2>4. データベースの構築</h2>
 
-1. xammpのコントロールパネルからapacheとMySQLを起動
+1. XAMPP のコントロールパネルから MySQL を起動
 
-1. xammpのコントロールパネル -> MySQLのAdminを押下しPHPMyAdminを起動
+   > アプリ自体は `php artisan serve` で動くため Apache は不要。
+   > 次の手順で phpMyAdmin を開くときだけ Apache も起動する。
+
+1. (任意) データベースの中身を画面で確認したい場合は Apache も起動し、
+XAMPP のコントロールパネル -> MySQL の Admin を押下して phpMyAdmin を開く
 
 1. データベースのマイグレートコマンドを実行
 
@@ -330,7 +334,8 @@ SQLite のインメモリデータベースで実行されるため、MySQL を�
 
 - - -
 
-<h2>未整理の項目</h2>
+<h2>フロントエンドのビルドについて</h2>
 
-* `package.json` / `vite.config.js` が存在するが、現状 Vite は使用しておらず
-  `public/` 配下の CSS / JS を直接読み込んでいる
+このアプリは Vite を使っていない。CSS / JS は `public/css/app.css` と
+`public/js/app.js` を Blade から直接読み込んでいる。
+そのため **Node.js と npm は不要**。`npm install` は実行しなくてよい。
