@@ -13,13 +13,41 @@
 1. 自身のアカウントにコピーされるので以降、そこに作ったものをpushしていく
 
 
-<h1>環境構築</h1>
+<h1>環境構築(毎回やること)</h1>
+
+> ### この教室の PC は、シャットダウンするとデータベースが消えます
+>
+> そのため、**授業のたびにこの環境構築を最初からやり直すことになります。**
+> 「前回は動いたのに `Unknown database 'kadai-app'` と言われる」のはこれが原因です。
+>
+> **書いたコードも一緒に消えます。**
+> 帰る前に必ず自分のフォークに push すること(ページ下部の「帰る前に必ずやること」を参照)。
+
+<h2>0. まず MySQL を起動する</h2>
+
+XAMPP のコントロールパネルを開き、**MySQL の行の Start** を押す。
+「Running」と緑色になれば起動している。
+
+> アプリ自体は `php artisan serve` で動くため Apache は不要。
+> phpMyAdmin でデータベースの中身を見たいときだけ Apache も起動する。
+
+**MySQL を起動せずに先へ進むと、手順 4 で必ず失敗する。**
 
 <h2>1. 準備</h2>
 
 1. 自身のgithubアカウントからリポジトリをcloneしVSCodeで開く
 
+```
+git clone <自分のフォークのURL> kadai-app
+```
+
+> **2 回目以降の人へ**
+> 徳永のリポジトリではなく、**前回 push した自分のフォーク**を clone すること。
+> 徳永のリポジトリを clone すると、前回の作業が入っていない状態から始まってしまう。
+
 1. VSCode上で[ctrl + @]でターミナルを開く(以降コマンドはここで入力する)(コマンドプロンプトでも可)
+
+以降のコマンドはすべて `kadai-app` フォルダの中で実行する。
 
 <h2>2. プロジェクトのアップデート</h2>
 
@@ -28,6 +56,8 @@
 ```
 composer install
 ```
+
+> 3〜5 分かかる。`vendor` フォルダはリポジトリに含まれていないため、毎回これが必要。
 
 <h2>3. 環境設定ファイルの作成</h2>
 
@@ -52,18 +82,10 @@ php artisan key:generate
 
 <h2>4. データベースの構築</h2>
 
-1. XAMPP のコントロールパネルから MySQL を起動
-
-   > アプリ自体は `php artisan serve` で動くため Apache は不要。
-   > 次の手順で phpMyAdmin を開くときだけ Apache も起動する。
-
-1. (任意) データベースの中身を画面で確認したい場合は Apache も起動し、
-XAMPP のコントロールパネル -> MySQL の Admin を押下して phpMyAdmin を開く
-
-1. データベースのマイグレートコマンドを実行
+テーブルの作成と初期データの投入を 1 コマンドで行う。
 
 ```
-php artisan migrate
+php artisan migrate --seed
 ```
 
 実行すると下記のようにデータベースを作るか確認されるので yes と入力
@@ -76,19 +98,47 @@ Would you like to create it? (yes/no) [no]
 > yes <=入力
 ```
 
-1. データベースに初期データを挿入
+テーブルが 4 つ作られたあと、初期データが入れば成功。
+
 ```
-php artisan db:seed
+   INFO  Running migrations.
+
+  2014_10_12_000001_create_users_table ................... DONE
+  2019_12_14_000001_create_personal_access_tokens_table .. DONE
+  2022_12_12_102505_create_posts_table ................... DONE
+  2022_12_12_123623_create_follows_table ................. DONE
+
+   INFO  Seeding database.
+
+  UserSeeder ..... DONE
+  PostSeeder ..... DONE
+  FollowSeeder ... DONE
 ```
 
-> **すでにデータベースを作成済みの場合**
-> テーブル定義が変更されているため、作り直しが必要です。
-> 下記のコマンドでテーブルの再作成と初期データ投入をまとめて実行できます。
-> (既存のデータはすべて消えます)
+> **データが入ったか確認したいとき**
+> `php artisan tinker` を起動して下記を入力する(`exit` で抜ける)。
+> ユーザー 3 件、投稿 20 件が返れば成功。
 >
 > ```
-> php artisan migrate:fresh --seed
+> User::count()
+> Post::count()
 > ```
+
+<h3>データを初期状態に戻したいとき</h3>
+
+課題を進めるうちにデータがぐちゃぐちゃになったら、下記で作り直せる。
+(自分で投稿したデータなどはすべて消える)
+
+```
+php artisan migrate:fresh --seed
+```
+
+> **`migrate:fresh` はデータベースが存在しないと使えない。**
+> 既存のテーブルを削除してから作り直すコマンドなので、データベース自体が無い状態で実行すると
+> `SQLSTATE[HY000] [1049] Unknown database 'kadai-app'` で止まる。
+>
+> **PC を起動した直後は、必ず手順 4 の `php artisan migrate --seed`(`:fresh` なし)を使うこと。**
+> こちらはデータベースが無ければ作るところから始めてくれる。
 
 <h2>5. アプリケーションの起動</h2>
 
@@ -97,6 +147,9 @@ php artisan db:seed
 ```
 php artisan serve
 ```
+
+> このターミナルは開いたままにしておく。止めるときは `Ctrl + C`。
+> 別のコマンドを打ちたいときは、ターミナルをもう 1 つ開いてそちらで実行する。
 
 <h3>アクセスURL</h3>
 
@@ -118,6 +171,71 @@ password: oca
 ```
 php artisan test
 ```
+
+課題に取り組む前の時点で **24 件すべて通る**。
+ここが赤い場合は環境構築のどこかが失敗しているので、先に解決すること。
+
+- - -
+
+<h1>まとめてコピペする用(2 回目以降)</h1>
+
+XAMPP で MySQL を Start したあと、下記をターミナルに貼り付ければ起動まで一気に進む。
+`<自分のフォークのURL>` だけ書き換えること。
+
+```
+git clone <自分のフォークのURL> kadai-app
+cd kadai-app
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+`migrate --seed` の途中でデータベースを作るか聞かれるので `yes` と入力する。
+
+- - -
+
+<h1>帰る前に必ずやること</h1>
+
+**この PC は電源を切るとデータベースも書いたコードも消えます。**
+授業の終わりに、必ずどちらかをやること。
+
+<h2>方法A: 自分のフォークに push する(おすすめ)</h2>
+
+```
+git add .
+git commit -m "Bug1とBug2を修正"
+git push origin master
+```
+
+> clone 元が自分のフォークなら `origin` がそのまま自分のリポジトリを指しているので、
+> `git push origin master` だけでよい。
+> 次回はこのフォークを clone すれば続きから始められる。
+
+<h2>方法B: フォルダごと USB メモリやクラウドにコピーする</h2>
+
+`kadai-app` フォルダをまるごとコピーする。
+`vendor` フォルダはとても大きいので、消してからコピーしてもよい
+(次回 `composer install` すれば元に戻る)。
+
+> **どちらの方法でもデータベースの中身は保存されない。**
+> 投稿したデータなどは毎回消えるが、初期データは `php artisan migrate --seed` で
+> 入れ直せるので問題ない。
+
+- - -
+
+<h1>うまくいかないときは</h1>
+
+| 症状 | 原因と対処 |
+| --- | --- |
+| `SQLSTATE[HY000] [1049] Unknown database 'kadai-app'` | データベースがまだ無い。手順 4 の `php artisan migrate --seed` を実行する(`migrate:fresh` ではなく) |
+| `SQLSTATE[HY000] [2002] 接続できませんでした` | MySQL が起動していない。XAMPP で MySQL を Start する |
+| `No application encryption key has been specified.` | `php artisan key:generate` がまだ |
+| `.env` が見つからない | `copy .env.example .env` を実行する |
+| ログイン画面が出ずエラーになる | `composer install` が途中で失敗している。もう一度実行する |
+| `Failed to listen on 127.0.0.1:8000` | すでに `php artisan serve` が動いている。前のターミナルを閉じるか `php artisan serve --port=8001` |
+| 前回書いたコードが無い | 自分のフォークではなく徳永のリポジトリを clone している。手順 1 を参照 |
 
 - - -
 
